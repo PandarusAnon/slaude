@@ -146,7 +146,7 @@ function streamNextClaudeResponseChunk(message, res) {
             text = stillTyping ? stripTyping(text) : text;
             let chunk = getNextChunk(text);
             
-            let data = {
+            let streamData = {
                 id: '', 
                 created: '', 
                 object: 'chat.completion.chunk',
@@ -158,7 +158,7 @@ function streamNextClaudeResponseChunk(message, res) {
                 }]
             };
         
-            res.write('\ndata: ' + JSON.stringify(data));
+            res.write('\ndata: ' + JSON.stringify(streamData));
 
             if (!stillTyping) {
                 finishStream(res);
