@@ -63,5 +63,29 @@ If you configured everything in Slaude correctly as well and made sure to accept
 
 Note that you do not need to have Slack open in your browser for this to work. Once this is set up you can in theory just never open your workspace again.
 
+## Untested guide for running Slaude on Android with termux
+Not tested if this works myself, but this guide was provided by a nice anon. This guide assumes you've already set up SillyTavern with termux.
+
+Copy your config.js file from your desktop to your phone if you already have it set up there. Make sure you're using the same fork. If you don't have it setup then: Download the https://github.com/PandarusAnon/slaude zip off of GitHub using your phone's browser. (Use desktop mode code download zip).
+Unzip the contents, open config.js file in a text editor. Edit the contents of the file following the instructions on the git page and save.
+Use kiwi browser for access to developer tools. It's a hassle on mobile, just use desktop this one time copying the cookies and shit.
+If you don't have a text editor (wow) use Acode or FX explorer.
+Now open termux and run the following:    
+`termux-setup-storage` click allow storage access.  
+`git clone https://github.com/PandarusAnon/slaude slaude` use the git link for whatever fork you want to use.  
+`cd slaude`  
+`npm install`  
+`termux-storage-get config.js` Browse to the directory where you have your edited config.js file, and select the file to import it.  
+Now you have installed and setup all the files necessary. To run Slaude do: `node app.js`. This step may be called something else depending on which git you selected so refer to the git page for the command to run the server.  
+Now to run Silly, you need to run a separate Termux session. You can do that by pulling the sidebar from the top right. Tap and pull from the top right corner. Look up how to pull sidebars with gesture navigation on youtube if you're having trouble.  
+Click on new session. You're loaded into a new session now, in the slaude directory though so you'll have to change to the silly directory. Do: `cd ~/silly_directory_name`. Now run your silly server with the regular `node server.js`. Follow the API instructions on the git page, and voila!
+
+To run Slaude + Tavern next time, open termux like usual. In the first session do: `cd slaude && node app.js` to run slaude. Switch to a new session and `cd ~/silly_directory && node server.js`.  
+\>I can't open the sidebar!
+Do: `nano ~/.termux/termux.properties`  
+Type the line: `shortcut.create-session=ctrl + t` anywhere in the file, just make sure you're writing on a fresh line and press ctrl+o, enter, ctrl+x.  
+Now to run a new session, simply press ctrl+t.
+
+
 # Final note
 I don't believe in names or avatars. I will be PandarusAnon on here because I needed a name for GitHub but I don't and won't use this name anywhere else.
