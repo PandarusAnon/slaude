@@ -3,7 +3,7 @@ const config = {
     COOKIE: "xoxd-xxxx",
     TEAM_ID: "workspacename",
     CHANNEL: "C1234D4567S",
-    CLAUDE_USER: "U0553A7F3DZ",
+    CLAUDE_USER: "U1234A568BC",
 
     PORT: 5004
 }

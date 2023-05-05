@@ -39,7 +39,7 @@ This is the ID of your Slack workspace. You can find this by clicking on the nam
 The ID of the channel we want to start the prompt threads in. This can be any channel, but a good fit is the default `#random` channel that comes with your workspace by default. Whatever channel you go with, open it and click the little arrow at the top next to the channel name. You can find the channel ID at the bottom of the resulting popup.
 
 ### CLAUDE_USER
-This should always be the same and can be left as is but if it doesn't work or changes for some reason, open your Claude DMs and similarly to the above step click on the little arrow next to Claude at the top. The _Member ID_ is what we're looking for here, not the Channel ID.
+Open your Claude DMs and similarly to the above step click on the little arrow next to Claude at the top. The _Member ID_ is what we're looking for here, not the Channel ID.
 
 ### PORT
 This only needs to be changed if you have anything else running on the same port already.
