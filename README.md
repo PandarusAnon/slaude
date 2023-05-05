@@ -38,6 +38,8 @@ This is the ID of your Slack workspace. You can find this by clicking on the nam
 ### CHANNEL
 The ID of the channel we want to start the prompt threads in. This can be any channel, but a good fit is the default `#random` channel that comes with your workspace by default. Whatever channel you go with, open it and click the little arrow at the top next to the channel name. You can find the channel ID at the bottom of the resulting popup.
 
+Once you've picked a channel and copied its ID, send a message anywhere in the channel that pings Claude with "@Claude". This will open a dialog asking for confirmation that Claude should be invited to the channel. Click on "Invite them" and Claude will now be able answer to your prompts in that channel.
+
 ### CLAUDE_USER
 Open your Claude DMs and similarly to the above step click on the little arrow next to Claude at the top. The _Member ID_ is what we're looking for here, not the Channel ID.
 
