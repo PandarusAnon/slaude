@@ -53,7 +53,7 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
 
         if (promptMessages.length > 1) {
             for (let i = 1; i < promptMessages.length; i++) {
-                await createSlackReply(tsThread, promptMessages[i]);
+                await createSlackReply(promptMessages[i], tsThread);
             }
         }
 
