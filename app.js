@@ -295,7 +295,7 @@ async function postSlackMessage(msg, thread_ts, pingClaude) {
     } else {
         blocks[0].elements[0].elements.push({
             'type': 'user',
-            'user_id': 'U0553A7F3DZ'
+            'user_id': config.CLAUDE_USER
         },
         {
             'type': 'text',
