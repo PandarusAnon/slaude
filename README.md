@@ -43,6 +43,10 @@ Once you've picked a channel and copied its ID, send a message anywhere in the c
 ### CLAUDE_USER
 Open your Claude DMs and similarly to the above step click on the little arrow next to Claude at the top. The _Member ID_ is what we're looking for here, not the Channel ID.
 
+### PING_MESSAGE
+This lets you configure what gets sent in the message that we use to ping Claude. This seems to have a pretty huge influence on his response, similar to a jailbreak. The default message is `"Assistant:"` and will prompt Claude to continue the context we sent him to the best of his abilites. This has the usual side effects of responses getting longer and longer as the context gets larger. Feel free to experiment with different messages here but be aware that this can lead to unpredictable behavior. You also can't use SillyTavern replacements like `{{char}}` or `{{user}}`. If you need to refer to either, your best bet will be to stick to calling the character "Assistant" and the user "Human".  
+One thing that I personally tried was `"Continue the story as Assistant. Keep your response brief and stay in character."` and it resulted in consistently shorter responses, even in longer conversations, but it also had the side effect of all messages being a single paragraph, even if a longer response would have been more appropriate for the situation. Probably good if you want to stick to more of an actual chat conversation format.
+
 ### PORT
 This only needs to be changed if you have anything else running on the same port already.
 
