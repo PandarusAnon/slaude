@@ -325,5 +325,5 @@ async function createSlackReply(promptMsg, ts) {
 }
 
 async function createClaudePing(ts) {
-    return await postSlackMessage('Assistant:', ts, true);
+    return await postSlackMessage(config.PING_MESSAGE, ts, true);
 }
