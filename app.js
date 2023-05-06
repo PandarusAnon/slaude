@@ -67,7 +67,7 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
 
             timeout = setTimeout(() => {
                 finishStream(res);
-            }, 30000);
+            }, 180000);
         } else {
             ws.on("message", (message) => {
                 getClaudeResponse(message, res);
