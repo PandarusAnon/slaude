@@ -321,7 +321,9 @@ async function postSlackMessage(msg, thread_ts, pingClaude) {
             ...form.getHeaders()
         }
     });
-
+    if ("ok" in res.data && !res.data.ok) {
+        console.log(res.data)
+    }
     return res.data.ts;
 }
 
