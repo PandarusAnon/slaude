@@ -3,6 +3,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import WebSocket from 'ws';
 import config from './config.js';
+import splitMessageInTwo from './utils.js';
 
 const app = express();
 
@@ -227,7 +228,15 @@ function buildSlackPromptMessages(messages) {
         if (currentPrompt.length + promptPart.length < maxMessageLength) {
             currentPrompt += promptPart;
         } else {
-            prompts.push(currentPrompt);
+            if (currentPrompt.length > 0) {
+                prompts.push(currentPrompt);
+            }
+            // edge case where a single message is bigger than allowed
+            if (promptPart.length > maxMessageLength) {
+                let split = splitMessageInTwo(msg.content, maxMessageLength, 500)
+                messages.splice(i + 1, 0, { ...msg, content: split[1] })
+                promptPart = convertToPrompt({ ...msg, content: split[0] });
+            }
             currentPrompt = promptPart;
         }
     }
