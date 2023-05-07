@@ -74,6 +74,14 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
                 getClaudeResponse(message, res);
             });
         }
+        ws.on("error", (err) => {
+            console.error(err);
+        });
+        ws.on("close", (code, reason) => {
+            if (code !== 1000 && code !== 1005) {
+                console.log(`Socket closed with code ${code} and reason ${reason}`);
+            }
+        });
 
         res.on("finish", () => {
             ws.close();
@@ -234,7 +242,7 @@ function buildSlackPromptMessages(messages) {
             // edge case where a single message is bigger than allowed
             if (promptPart.length > maxMessageLength) {
                 let split = splitMessageInTwo(msg.content, maxMessageLength, 500)
-                messages.splice(i + 1, 0, { ...msg, content: split[1] })
+                messages.splice(i + 1, 0, { ...msg, content: split[1], role: ""})
                 promptPart = convertToPrompt({ ...msg, content: split[0] });
             }
             currentPrompt = promptPart;
@@ -262,7 +270,10 @@ function convertToPrompt(msg) {
         }
     }
     else {
-        return `${rename_roles[msg.role]}: ${msg.content}\n\n`
+        if (rename_roles[msg.role]) {
+            return `${rename_roles[msg.role]}: ${msg.content}\n\n`
+        }
+        return `${msg.content}\n\n`
     }
 }
 
@@ -302,14 +313,22 @@ async function postSlackMessage(msg, thread_ts, pingClaude) {
             'text': msg
         });
     } else {
+        if (config.PING_MESSAGE_PREFIX) {
+            blocks[0].elements[0].elements.push({
+                'type': 'text',
+                'text': config.PING_MESSAGE_PREFIX
+            }); 
+        }
         blocks[0].elements[0].elements.push({
             'type': 'user',
             'user_id': config.CLAUDE_USER
-        },
-        {
-            'type': 'text',
-            'text': msg
         });
+        if (config.PING_MESSAGE) {
+            blocks[0].elements[0].elements.push({
+                'type': 'text',
+                'text': config.PING_MESSAGE
+            });
+        }
     }
 
     form.append('blocks', JSON.stringify(blocks));
@@ -336,5 +355,5 @@ async function createSlackReply(promptMsg, ts) {
 }
 
 async function createClaudePing(ts) {
-    return await postSlackMessage(config.PING_MESSAGE, ts, true);
+    return await postSlackMessage(null, ts, true);
 }
