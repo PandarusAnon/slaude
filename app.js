@@ -9,8 +9,8 @@ const app = express();
 const rename_roles = {
     'user': 'Human',
     'assistant': 'Assistant',
-    'example_user': 'Human',
-    'example_assistant': 'Assistant'
+    'example_user': 'H',
+    'example_assistant': 'A'
 }
 
 const typingString = "\n\n_Typing…_";
@@ -47,7 +47,7 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
 
     try {
         let stream = req.body.stream ?? false;
-        let promptMessages = buildSlackPromptMessages(req.body.messages);
+        let promptMessages = buildSlackPromptMessagesV2(req.body.messages);
 
         let tsThread = await createSlackThread(promptMessages[0]);
 
@@ -58,7 +58,7 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
         console.log(`Create thread with ts ${tsThread}`);
 
         if (promptMessages.length > 1) {
-            for (let i = 1; i < promptMessages.length; i++) {
+            for (let i = 1; i < promptMessages.length - 1; i++) {
                 await createSlackReply(promptMessages[i], tsThread);
                 console.log(`Created ${i}. reply on thread ${tsThread}`);
             }
@@ -91,15 +91,15 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
             }
         })
 
-        await createClaudePing(tsThread);
+        await createClaudePing(promptMessages[promptMessages.length - 1], tsThread);
         console.log(`Created Claude ping on thread ${tsThread}`);
     } catch (error) {
-        console.error(error);
         next(error);
     }
 });
 
 app.listen(config.PORT, () => {
+    console.log("Experimental build, only use if you know what you're doing.");
     console.log(`Slaude is running at http://localhost:${config.PORT}`);
     checkConfig();
 });
@@ -256,6 +256,105 @@ function finishStream(res) {
     res.end();
 }
 
+function buildSlackPromptMessagesV2(messages) {
+    let prompts = [];
+
+    //Split the first message on the first \n, this separates the main prompt from the character definition
+    let firstMessage = messages[0].content;
+    let separatorIndex = firstMessage.indexOf('\n');
+    let mainPrompt = firstMessage.slice(0, separatorIndex);
+    let characterDefinition = firstMessage.slice(separatorIndex, firstMessage.length);
+    let currentPrompt = "Here is a character description in <character> tags:\n" + "<character>\n" + characterDefinition + "</character>\n";
+
+    // Get all the example chats and format them into example blocks
+    let examples = getExampleChatBlocks(messages);
+    if (examples.exampleMessages.length > 0) {
+        for (let i = 0; i < examples.exampleMessages.length; i++) {
+            if (isPromptFinished(currentPrompt, examples.exampleMessages[i])) {
+                prompts.push(currentPrompt);
+                currentPrompt = examples.exampleMessages[i];
+            } else {
+                currentPrompt += examples.exampleMessages[i];
+            }
+        }
+    }
+
+    // Do the rest of the messages as usual
+    for (let i = examples.finalIndex + 1; i < messages.length; i++) {
+        let msg = messages[i];
+        let promptPart = convertToPrompt(msg);
+        if (currentPrompt.length + promptPart.length < maxMessageLength) {
+            currentPrompt += promptPart;
+        } else {
+            prompts.push(currentPrompt);
+            currentPrompt = promptPart;
+        }
+    }
+    prompts.push(currentPrompt);
+
+    //finally, push the main prompt as the final message
+    prompts.push(mainPrompt);
+    return prompts;
+}
+
+function getExampleChatBlocks(messages) {
+    let examples = {exampleMessages: [], finalIndex: 0};
+
+    let exampleStarts = [];
+    for (let i = 0; i < messages.length; i++) {
+        if (isExampleChatStart(messages, i)) {
+            exampleStarts.push(i);
+        } else if (isRealChatStart(messages, i)) {
+            examples.finalIndex = i;
+            break;
+        }
+    }
+    if (exampleStarts.length === 0) {
+        return examples;
+    }
+
+    let exampleBlocks = ["Here are example conversations in <example> tags:\n"];
+    for (let i = 0; i < exampleStarts.length; i++) {
+        exampleBlocks.push('<example>\n');
+        let blockEnd = (i === exampleStarts.length - 1) ? examples.finalIndex : exampleStarts[i+1];
+        console.log(exampleStarts[i], blockEnd);
+        for (let j = exampleStarts[i]; j < blockEnd; j++) {
+            if (messages[j].content === '[Start a new chat]') {
+                continue;
+            }
+            exampleBlocks.push(convertToPrompt(messages[j]));
+        }
+        exampleBlocks.push('</example>\n');
+    }
+    
+    examples.exampleMessages = exampleBlocks;
+    return examples;
+}
+
+function isExampleChatStart(messages, index) {
+    if (index === messages.length) {
+        return false;
+    }
+    let currentMessage = messages[index];
+    let nextMessage = messages[index+1];
+
+    return currentMessage.content === '[Start a new chat]' && !('name' in currentMessage) && ('name' in nextMessage);
+}
+
+function isRealChatStart(messages, index) {
+    if (index === messages.length) {
+        return false;
+    }
+    let currentMessage = messages[index];
+    let nextMessage = messages[index+1];
+
+    return currentMessage.content === '[Start a new chat]' && !('name' in currentMessage) && !('name' in nextMessage);
+}
+
+function isPromptFinished(currentPrompt, promptPart) {
+    return currentPrompt.length + promptPart.length > maxMessageLength;
+}
+
 /**
  * Takes the OpenAI formatted messages send by SillyTavern and converts them into multiple plain text
  * prompt chunks. Each chunk should fit into a single Slack chat message without getting cut off.
@@ -381,6 +480,6 @@ async function createSlackReply(promptMsg, ts) {
     return await postSlackMessage(promptMsg, ts, false);
 }
 
-async function createClaudePing(ts) {
-    return await postSlackMessage(config.PING_MESSAGE, ts, true);
+async function createClaudePing(promptMsg, ts) {
+    return await postSlackMessage(promptMsg, ts, true);
 }
