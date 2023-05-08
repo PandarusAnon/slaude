@@ -74,6 +74,11 @@ Copy your config.js file from your desktop to your phone if you already have it 
 Unzip the contents, open config.js file in a text editor. Edit the contents of the file following the instructions on the git page and save.
 Use kiwi browser for access to developer tools. It's a hassle on mobile, just use desktop this one time copying the cookies and shit.
 If you don't have a text editor (wow) use Acode or FX explorer.
+
+termux-storage-get requires the Termux:API addon. https://wiki.termux.com/wiki/Termux-storage-get
+Get it from here: https://www.f-droid.org/en/packages/com.termux.api/ and then run pkg install termux-api -y in termux.
+If you don't want to install an extra app, you can learn to use a terminal text editor (look up how to use nano or vim) or follow the guide here: https://wiki.termux.com/wiki/Internal_and_external_storage to connect your termux storage to FX Explorer and edit files from there.
+
 Now open termux and run the following:    
 `termux-setup-storage` click allow storage access.  
 `git clone https://github.com/PandarusAnon/slaude slaude` use the git link for whatever fork you want to use.  
