@@ -8,6 +8,7 @@ import splitMessageInTwo from './utils.js';
 const app = express();
 
 const rename_roles = {
+    'system': 'Human',
     'user': 'Human',
     'assistant': 'Assistant',
     'example_user': 'Human',
@@ -265,16 +266,11 @@ function convertToPrompt(msg) {
         if ('name' in msg) {
             return `${rename_roles[msg.name]}: ${msg.content}\n\n`
         }
-        else {
-            return `${msg.content}\n\n`
-        }
     }
-    else {
-        if (rename_roles[msg.role]) {
-            return `${rename_roles[msg.role]}: ${msg.content}\n\n`
-        }
-        return `${msg.content}\n\n`
+    if (rename_roles[msg.role]) {
+        return `${rename_roles[msg.role]}: ${msg.content}\n\n`
     }
+    return `${msg.content}\n\n`
 }
 
 /**
