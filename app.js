@@ -7,13 +7,6 @@ import splitMessageInTwo from './utils.js';
 
 const app = express();
 
-const rename_roles = {
-    'system': 'Human',
-    'user': 'Human',
-    'assistant': 'Assistant',
-    'example_user': 'Human',
-    'example_assistant': 'Assistant'
-}
 
 const typingString = "\n\n_Typing…_";
 
@@ -264,11 +257,11 @@ function buildSlackPromptMessages(messages) {
 function convertToPrompt(msg) {
     if (msg.role === 'system') {
         if ('name' in msg) {
-            return `${rename_roles[msg.name]}: ${msg.content}\n\n`
+            return `${config.rename_roles[msg.name]}: ${msg.content}\n\n`
         }
     }
-    if (rename_roles[msg.role]) {
-        return `${rename_roles[msg.role]}: ${msg.content}\n\n`
+    if (config.rename_roles[msg.role]) {
+        return `${config.rename_roles[msg.role]}: ${msg.content}\n\n`
     }
     return `${msg.content}\n\n`
 }

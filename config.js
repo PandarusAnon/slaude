@@ -12,6 +12,14 @@ const config = {
     PING_MESSAGE: ": ",
     minimum_split_size: 500,
 
+    rename_roles: {
+        'system': 'Human',
+        'user': 'Human',
+        'assistant': 'Assistant',
+        'example_user': 'Human',
+        'example_assistant': 'Assistant'
+    },
+
     PORT: 5004,
 }
 
