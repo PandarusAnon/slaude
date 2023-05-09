@@ -19,6 +19,8 @@ const maxMessageLength = 12000;
 
 var lastMessage = '';
 
+var streamQueue = Promise.resolve();
+
 app.use(express.json());
 
 /** SillyTavern calls this to check if the API is available, the response doesn't really matter */
@@ -55,7 +57,7 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
             throw new Error("First message did not return a thread timestamp. Make sure that CHANNEL is set to a channel ID that both your Slack user and Claude have access to.")
         }
 
-        console.log(`Create thread with ts ${tsThread}`);
+        console.log(`Created thread with ts ${tsThread}`);
 
         if (promptMessages.length > 1) {
             for (let i = 1; i < promptMessages.length; i++) {
@@ -69,13 +71,15 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
 
         if (stream) {
             console.log("Opened stream for Claude's response.");
+            streamQueue = Promise.resolve();
             ws.on("message", (message) => {
-                streamNextClaudeResponseChunk(message, res);
+                streamQueue = streamQueue.then(streamNextClaudeResponseChunk.bind(this, message, res));
             });
 
             timeout = setTimeout(() => {
+                console.log("Streaming response taking too long, closing stream.")
                 finishStream(res);
-            }, 180000);
+            }, 240000);
         } else {
             console.log("Awaiting Claude's response.");
             ws.on("message", (message) => {
@@ -89,7 +93,7 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
             if (timeout) {
                 clearTimeout(timeout);
             }
-        })
+        });
 
         await createClaudePing(tsThread);
         console.log(`Created Claude ping on thread ${tsThread}`);
@@ -162,7 +166,13 @@ function openWebSocketConnection() {
  * Only needed for streaming.
  */
 function getNextChunk(text) {
+    // Current and last message are identical, can skip streaming a chunk.
     if (text === lastMessage) {
+        return '';
+    }
+
+    // if the next message doesn't have the entire previous message in it we received something out of order and dismissing it is the safest option
+    if (!text.includes(lastMessage)) {
         return '';
     }
 
@@ -183,35 +193,40 @@ function stripTyping(text) {
  * @param {*} res The Response object for SillyTavern's request
  */
 function streamNextClaudeResponseChunk(message, res) {
-    try {
-        let data = JSON.parse(message);
-        if (data.subtype === 'message_changed') {
-            let text = data.message.text;
-            let stillTyping = text.endsWith(typingString);
-            text = stillTyping ? stripTyping(text) : text;
-            let chunk = getNextChunk(text);
-            
-            let streamData = {
-                id: '', 
-                created: '', 
-                object: 'chat.completion.chunk',
-                choices: [{
-                    delta: {
-                        content: chunk
-                    },
-                    index: 0
-                }]
-            };
-        
-            res.write('\ndata: ' + JSON.stringify(streamData));
+    return new Promise((resolve, reject) => {
+        try {
+            let data = JSON.parse(message);
+            if (data.subtype === 'message_changed') {
+                let text = data.message.text;
+                let stillTyping = text.endsWith(typingString);
+                text = stillTyping ? stripTyping(text) : text;
+                let chunk = getNextChunk(text);
 
-            if (!stillTyping) {
-                finishStream(res);
+                if (chunk.length === 0) {
+                    resolve();
+                    return;
+                }
+                
+                let streamData = {
+                    choices: [{
+                        delta: {
+                            content: chunk
+                        }
+                    }]
+                };
+            
+                res.write('\ndata: ' + JSON.stringify(streamData));
+    
+                if (!stillTyping) {
+                    finishStream(res);
+                }
             }
+            resolve();
+        } catch (error) {
+            console.error('Error parsing Slack WebSocket message');
+            reject(error);
         }
-    } catch (error) {
-        console.error('Error parsing Slack WebSocket message:', error);
-    }
+    });
 }
 
 /**
@@ -226,13 +241,10 @@ function getClaudeResponse(message, res) {
         if (data.subtype === 'message_changed') {
             if (!data.message.text.endsWith(typingString)) {
                 res.json({
-                    id: '', created: '',
-                    object: 'chat.completion',
                     choices: [{
                         message: {
                             content: data.message.text
-                        },
-                        index: 0
+                        }
                     }]
                 });
             } else {
