@@ -329,7 +329,6 @@ function getExampleChatBlocks(messages) {
     for (let i = 0; i < exampleStarts.length; i++) {
         exampleBlocks.push('<example>\n');
         let blockEnd = (i === exampleStarts.length - 1) ? examples.finalIndex : exampleStarts[i+1];
-        console.log(exampleStarts[i], blockEnd);
         for (let j = exampleStarts[i]; j < blockEnd; j++) {
             if (messages[j].content === '[Start a new chat]') {
                 continue;
