@@ -287,12 +287,20 @@ function buildSlackPromptMessages(messages) {
     let currentPrompt = '';
     let mainPrompt = '';
     if (config.MAINPROMPT_LAST || config.MAINPROMPT_AS_PING) {
-        let firstMessage = convertToPrompt(messages.shift());
-        let index = firstMessage.indexOf('\n');
-        mainPrompt = firstMessage.slice(0, index);
-        currentPrompt = firstMessage.slice(index, firstMessage.length);
-        if (currentPrompt.length > maxMessageLength) {
-            currentPrompt = splitPrompt(currentPrompt, prompts);
+        let firstMessage = convertToPrompt(messages[0]);
+        let index = firstMessage.indexOf('\n\n');
+
+        if (index > 0) {
+            mainPrompt = firstMessage.slice(0, index);
+            currentPrompt = firstMessage.slice(index, firstMessage.length);
+            if (currentPrompt.length > maxMessageLength) {
+                currentPrompt = splitPrompt(currentPrompt, prompts);
+            }
+            messages.shift();
+        } else {
+            console.warn("Unable to determine cutoff point for main prompt, reverting to default behavior.");
+            config.MAINPROMPT_LAST = false;
+            config.MAINPROMPT_AS_PING = false;
         }
     }
 
