@@ -43,12 +43,26 @@ Once you've picked a channel and copied its ID, send a message anywhere in the c
 ### CLAUDE_USER
 Open your Claude DMs and similarly to the above step click on the little arrow next to Claude at the top. The _Member ID_ is what we're looking for here, not the Channel ID.
 
-### PING_MESSAGE
-This lets you configure what gets sent in the message that we use to ping Claude. This seems to have a pretty huge influence on his response, similar to a jailbreak. The default message is `"Assistant:"` and will prompt Claude to continue the context we sent him to the best of his abilites. This has the usual side effects of responses getting longer and longer as the context gets larger. Feel free to experiment with different messages here but be aware that this can lead to unpredictable behavior. You also can't use SillyTavern replacements like `{{char}}` or `{{user}}`. If you need to refer to either, your best bet will be to stick to calling the character "Assistant" and the user "Human".  
-One thing that I personally tried was `"Continue the story as Assistant. Keep your response brief and stay in character."` and it resulted in consistently shorter responses, even in longer conversations, but it also had the side effect of all messages being a single paragraph, even if a longer response would have been more appropriate for the situation. Probably good if you want to stick to more of an actual chat conversation format.
-
 ### PORT
 This only needs to be changed if you have anything else running on the same port already.
+
+## Other settings
+The following settings aren't required for setup and can be left on their defaults.
+
+### MAINPROMPT_LAST
+If set to true Slaude will try to move the main prompt, which is usually the block of text before the character definitions, to the bottom of the prompt we send to Slack. Can be helpful when as the context grows because this prevents the main prompt from being the first thing that falls out of memory.
+
+### MAINPROMPT_AS_PING
+If set to true does the same as above, but uses the contents of the main prompt as the PING_MESSAGE instead (see below). This completely replaces the PING_MESSAGE set in the config. Using the main prompt we get from SillyTavern has the advantage that we have access to all placeholders, like `{{char}}` and `{{user}}`, and can use presets to change the PING_MESSAGE instead of having to edit the config every time. If you put an @Claude anywhere in your main prompt or NSFW prompt it will get replaced with the actual Claude ping, same as PING_MESSAGE. The jailbreak from SillyTavern is not included in this as it gets placed apart from the rest of the main prompt. If you want your jailbreak to be in the ping message too, try putting it in the main prompt or NSFW prompt instead.
+
+### USE_BLOCKS
+If set to false Slaude will send the prompt messages as plain text instead of Slack's blocks format. The result on Slack's end will be the same, though it reduces the maximum size of a single message to 4000 characters. This might not actually make any difference but turning this off might be slightly less error prone because we can just send the text as is instead of having to wrap it in blocks JSON.
+
+### STREAMING_TIMEOUT
+Sets the timeout in milliseconds for streaming the response back to SillyTavern if streaming is enabled. Default is 240000ms = 4m. After this time the stream will be force closed so SillyTavern doesn't hang forever for a response that isn't coming. Can be set to 0 to disable the timeout entirely though that is not recommended.
+
+### PING_MESSAGE
+This lets you configure what gets sent in the message that we use to ping Claude. This seems to have a pretty huge influence on his response, similar to a jailbreak. The default message is `"Assistant:"` and will prompt Claude to continue the context we sent him to the best of his abilites. If you put "@Claude" anywhere in the string that's where Slaude will put the actual ping, otherwise it will automatically be in front of the message. I would recommend to use the MAINPROMPT_AS_PING setting above instead but you can also use MAINPROMPT_LAST together with PING_MESSAGE if you want to have control over both.
 
 ## Starting the server and connecting to SillyTavern
 It is recommended but not required to use the latest dev version of SillyTavern.
@@ -57,7 +71,7 @@ Run start.bat or start.sh depending on your system of choice or just do `npm ins
 
 In SillyTavern, click the API connections button and switch the API to OpenAI. Enter whatever you want in the API key field. The selected model doesn't matter either.
 
-In the AI Response Configuration, paste the above URL into the Reverse Proxy field. I recommend creating a new preset for Claude. If you already have one for Spermack that should work fine. Set the context size to something sensible. Something between 4000-5600 should be safe. Max Response Length, Temperature, Frequency Penalty and Presence Penalty are all irrelevant and will be ignored, as will most other OpenAI specific settings. Streaming should work but I personally don't use it so I didn't test it that much.
+In the AI Response Configuration, paste the above URL into the Reverse Proxy field. I recommend creating a new preset for Claude. If you already have one for Spermack that should work fine. Set the context size to something sensible. It's hard to tell how much context Slack actually lets us use so it's difficult to make a definite recommendation. Smaller context sizes will result in less dementia over time but also less memory. You shouldn't have to go lower than 3.5k though. Max Response Length, Temperature, Frequency Penalty and Presence Penalty are all irrelevant and will be ignored, as will most other OpenAI specific settings. Streaming should work but I personally don't use it so I didn't test it that much.
 
 What to use for your prompts is up to personal preference. I personally don't believe Claude needs any jailbreaks and never used any. If you do decide to send the jailbreak _do not use the default SillyTavern jailbreak_.
 

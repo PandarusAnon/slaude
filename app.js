@@ -9,13 +9,13 @@ const app = express();
 const rename_roles = {
     'user': 'Human',
     'assistant': 'Assistant',
-    'example_user': 'Human',
-    'example_assistant': 'Assistant'
+    'example_user': 'H',
+    'example_assistant': 'A'
 }
 
 const typingString = "\n\n_Typing…_";
 
-const maxMessageLength = 12000;
+const maxMessageLength = config.USE_BLOCKS ? 12000 : 4000;
 
 var lastMessage = '';
 
@@ -59,6 +59,11 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
 
         console.log(`Created thread with ts ${tsThread}`);
 
+        let pingMessage = config.PING_MESSAGE;
+        if (config.MAINPROMPT_AS_PING) {
+            pingMessage = promptMessages.pop();
+        }
+
         if (promptMessages.length > 1) {
             for (let i = 1; i < promptMessages.length; i++) {
                 await createSlackReply(promptMessages[i], tsThread);
@@ -76,10 +81,12 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
                 streamQueue = streamQueue.then(streamNextClaudeResponseChunk.bind(this, message, res));
             });
 
-            timeout = setTimeout(() => {
-                console.log("Streaming response taking too long, closing stream.")
-                finishStream(res);
-            }, 240000);
+            if (config.STREAMING_TIMEOUT > 0) {
+                timeout = setTimeout(() => {
+                    console.log("Streaming response taking too long, closing stream.")
+                    finishStream(res);
+                }, config.STREAMING_TIMEOUT);
+            }
         } else {
             console.log("Awaiting Claude's response.");
             ws.on("message", (message) => {
@@ -95,7 +102,7 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
             }
         });
 
-        await createClaudePing(tsThread);
+        await createClaudePing(pingMessage, tsThread);
         console.log(`Created Claude ping on thread ${tsThread}`);
     } catch (error) {
         console.error(error);
@@ -140,7 +147,7 @@ function openWebSocketConnection() {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             reject('Timed out establishing WebSocket connection.');
-        }, 10000);
+        }, 30000);
 
         var ws = new WebSocket(`wss://wss-primary.slack.com/?token=${config.TOKEN}`, {
             headers: {
@@ -278,6 +285,17 @@ function finishStream(res) {
 function buildSlackPromptMessages(messages) {
     let prompts = [];
     let currentPrompt = '';
+    let mainPrompt = '';
+    if (config.MAINPROMPT_LAST || config.MAINPROMPT_AS_PING) {
+        let firstMessage = convertToPrompt(messages.shift());
+        let index = firstMessage.indexOf('\n');
+        mainPrompt = firstMessage.slice(0, index);
+        currentPrompt = firstMessage.slice(index, firstMessage.length);
+        if (currentPrompt.length > maxMessageLength) {
+            currentPrompt = splitPrompt(currentPrompt, prompts);
+        }
+    }
+
     for (let i = 0; i < messages.length; i++) {
         let msg = messages[i];
         let promptPart = convertToPrompt(msg);
@@ -286,10 +304,29 @@ function buildSlackPromptMessages(messages) {
         } else {
             prompts.push(currentPrompt);
             currentPrompt = promptPart;
+            if (currentPrompt.length > maxMessageLength) {
+                currentPrompt = splitPrompt(currentPrompt, prompts);
+            }
         }
     }
     prompts.push(currentPrompt);
+
+    if (config.MAINPROMPT_LAST || config.MAINPROMPT_AS_PING) {
+        prompts.push(mainPrompt);
+    }
+
     return prompts;
+}
+
+function splitPrompt(text, prompts) {
+    let whiteSpaceMatch = text.slice(0, maxMessageLength).match(/\s(?=[^\s]*$)/);
+    let splitIndex = whiteSpaceMatch === null ? maxMessageLength : whiteSpaceMatch.index + 1;
+    prompts.push(text.slice(0, splitIndex));
+    let secondHalf = text.slice(splitIndex, text.length);
+    if (secondHalf > maxMessageLength) {
+        return splitPrompt(secondHalf, prompts);
+    }
+    return secondHalf;
 }
 
 /**
@@ -312,6 +349,16 @@ function convertToPrompt(msg) {
     else {
         return `${rename_roles[msg.role]}: ${msg.content}\n\n`
     }
+}
+
+function preparePingMessage(msg) {
+    const claudePing = `<@${config.CLAUDE_USER}>`;
+    let claudePingMatch = msg.match(/@Claude/i);
+    if (claudePingMatch === null) {
+        return `${claudePing} ${msg}`;
+    }
+
+    return msg.replace(claudePingMatch[0], claudePing);
 }
 
 /**
@@ -337,30 +384,25 @@ async function postSlackMessage(msg, thread_ts, pingClaude) {
         form.append('thread_ts', thread_ts);
     }
 
-    let blocks = [{
-        'type': 'rich_text',
-        'elements': [{
-            'type': 'rich_text_section',
-            'elements': []
-        }]
-    }];
-    if (!pingClaude) {
-        blocks[0].elements[0].elements.push({
-            'type': 'text',
-            'text': msg
-        });
-    } else {
-        blocks[0].elements[0].elements.push({
-            'type': 'user',
-            'user_id': config.CLAUDE_USER
-        },
-        {
-            'type': 'text',
-            'text': msg
-        });
+    if (pingClaude) {
+        msg = preparePingMessage(msg);
     }
 
-    form.append('blocks', JSON.stringify(blocks));
+    if (config.USE_BLOCKS) {
+        let blocks = [{
+            'type': 'rich_text',
+            'elements': [{
+                'type': 'rich_text_section',
+                'elements': [{
+                    'type': 'text',
+                    'text': msg
+                }]
+            }]
+        }];
+        form.append('blocks', JSON.stringify(blocks));
+    } else {
+        form.append('text', msg);
+    }
 
     var res = await axios.post(`https://${config.TEAM_ID}.slack.com/api/chat.postMessage`, form, {
         headers: {
@@ -393,6 +435,6 @@ async function createSlackReply(promptMsg, ts) {
     return await postSlackMessage(promptMsg, ts, false);
 }
 
-async function createClaudePing(ts) {
-    return await postSlackMessage(config.PING_MESSAGE, ts, true);
+async function createClaudePing(promptMsg, ts) {
+    return await postSlackMessage(promptMsg, ts, true);
 }
