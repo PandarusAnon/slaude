@@ -222,7 +222,7 @@ function streamNextClaudeResponseChunk(message, res) {
                     }]
                 };
             
-                res.write('\ndata: ' + JSON.stringify(streamData));
+                res.write('\n\ndata: ' + JSON.stringify(streamData));
     
                 if (!stillTyping) {
                     finishStream(res);
@@ -271,7 +271,7 @@ function getClaudeResponse(message, res) {
  */
 function finishStream(res) {
     lastMessage = '';
-    res.write('\ndata: [DONE]');
+    res.write('\n\ndata: [DONE]');
     res.end();
 }
 
