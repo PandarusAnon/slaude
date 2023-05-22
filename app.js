@@ -75,6 +75,7 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
         let timeout = null;
 
         if (stream) {
+            res.setHeader("Content-Type", "text/event-stream");
             console.log("Opened stream for Claude's response.");
             streamQueue = Promise.resolve();
             ws.on("message", (message) => {
@@ -222,7 +223,7 @@ function streamNextClaudeResponseChunk(message, res) {
                     }]
                 };
             
-                res.write('\ndata: ' + JSON.stringify(streamData));
+                res.write('\n\ndata: ' + JSON.stringify(streamData));
     
                 if (!stillTyping) {
                     finishStream(res);
@@ -271,7 +272,7 @@ function getClaudeResponse(message, res) {
  */
 function finishStream(res) {
     lastMessage = '';
-    res.write('\ndata: [DONE]');
+    res.write('\n\ndata: [DONE]');
     res.end();
 }
 
