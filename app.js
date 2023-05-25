@@ -78,6 +78,9 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
             res.setHeader("Content-Type", "text/event-stream");
             console.log("Opened stream for Claude's response.");
             streamQueue = Promise.resolve();
+
+            // every request need a empty lastMessage
+            lastMessage = '';
             ws.on("message", (message) => {
                 streamQueue = streamQueue.then(streamNextClaudeResponseChunk.bind(this, message, res));
             });
