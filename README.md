@@ -109,6 +109,10 @@ Do: `nano ~/.termux/termux.properties`
 Type the line: `shortcut.create-session=ctrl + t` anywhere in the file, just make sure you're writing on a fresh line and press ctrl+o, enter, ctrl+x.  
 Now to run a new session, simply press ctrl+t.
 
+## Using the localtunnel feature with web frontends like agnai.chat and risuAI
+Set `USE_LOCALTUNNEL` to `true` in `config.js` and start Slaude. Use the given loca.lt url in your favorite web frontend like any other proxy url.
+For risuAI and other frontends that pretend to be a browser you need to visit the given loca.lt url once and follow the instructions.
+
 
 # Final note
 I don't believe in names or avatars. I will be PandarusAnon on here because I needed a name for GitHub but I don't and won't use this name anywhere else.
