@@ -2,6 +2,8 @@ import express from 'express';
 import axios from 'axios';
 import FormData from 'form-data';
 import WebSocket from 'ws';
+import localtunnel from 'localtunnel';
+import cors from 'cors';
 import config from './config.js';
 
 const app = express();
@@ -22,6 +24,9 @@ var lastMessage = '';
 var streamQueue = Promise.resolve();
 
 app.use(express.json());
+
+//risuAI wants a CORS header
+app.use(cors());
 
 /** SillyTavern calls this to check if the API is available, the response doesn't really matter */
 app.get('/(.*)/models', (req, res) => {
@@ -117,6 +122,13 @@ app.post('/(.*)/chat/completions', async (req, res, next) => {
 app.listen(config.PORT, () => {
     console.log(`Slaude is running at http://localhost:${config.PORT}`);
     checkConfig();
+
+    if (config.USE_LOCALTUNNEL) {
+        console.log('\nLaunching localtunnel ...');
+        localtunnel({ port: config.PORT })
+            .then((tunnel) => {
+            console.log(`Localtunnel URL: ${tunnel.url}/v1\n`);
+    })}
 });
 
 function checkConfig() {

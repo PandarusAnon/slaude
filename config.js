@@ -19,6 +19,9 @@ const config = {
     // Anything we put here will eat into our max available tokens so keep it brief.
     PING_MESSAGE: "Assistant:",
 
+    // Set to true if you want to use Slaude with a web frontend like risuAI or agnai.chat.
+    USE_LOCALTUNNEL: false,
+	
     PORT: 5004
 }
 
