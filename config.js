@@ -1,7 +1,7 @@
 const config = {
     TOKEN: "xoxc-xxxx",
     COOKIE: "xoxd-xxxx",
-    TEAM_ID: "workspacename",
+    TEAM_ID: "abc-fym8008",
     CHANNEL: "C1234D4567S",
     CLAUDE_USER: "U1234A568BC",
 
